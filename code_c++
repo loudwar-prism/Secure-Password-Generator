@@ -1,0 +1,168 @@
+#include <iostream>
+#include <string>
+#include <cstdlib>
+#include <random>
+#include <cmath>
+#include <fstream>
+using namespace std;
+
+// Формула информационной энтропии Шеннона (E = L * log2(R))
+// E = уровень ентропии (в битах)
+// L = длинна пароля
+// R = кол-во возможных символов в пуле пароля
+// ----------------------------------
+// Формула для оценки времени взлома пароля
+// N = 2^E
+// условный показатель N - 10 миллиардов паролей в секунду (10^10 комбинация per sec)
+
+string timeToCrack (float entropy) {
+    double combination = pow (2.0, entropy);
+    double speedPerSec = 1e10;
+    double seconds = combination / speedPerSec;
+
+    if (seconds < 1) {
+       return "Меньше секунды";
+    } else if (seconds < 60) {
+        return to_string((long long) seconds) + " секунд";
+    } else if (seconds < 3600) {
+        return to_string((long long) (seconds / 60)) + " минут(ы/a)";
+    } else if (seconds < 86400) {
+        return  to_string ((long long) (seconds / 3600)) + " час(а/ов)";
+    } else if (seconds < 31536000) {
+        return to_string((long long) (seconds / 86400)) + " дней";
+    } else {
+        return to_string((long long) (seconds / 31536000)) + " лет";
+    }
+}
+
+float calculateSafetyOfPassword (int lengthPass, int poolSize) {
+    return lengthPass * log2(poolSize);
+}
+void levelOfSafety (float &entropy) {
+    if (entropy < 40) {
+        cout << "Слабый пароль (опасность брутфорса)" << endl;
+    } else if (entropy < 60) {
+        cout << "Средний пароль" << endl;
+    } else if (entropy < 80) {
+        cout << "Сильный пароль (устойчив к взлому)" << endl;
+    } else {
+        cout << "Отличный пароль (максимальная устойчивость)" << endl;
+    }
+}
+void typeOfSymbols(string &passwordPool) {
+    // -----------------------------------
+    string low_register = "qwertyuiopasdfghjklzxcvbnm";
+    string high_register = "QWERTYUIOPASDFGHJKLZXCVBNM";
+    string symbols = "!@#$%^&*()_+=-/.'}[{]`><,;:";
+    string numbers = "1234567890";
+    // --------------------------------
+    char useLowReg;
+    cout << "Использовать в пароле нижний регистер букв? (y/n)" << endl;
+    cin >> useLowReg;
+    cin.ignore();
+    if (useLowReg == 'y' || useLowReg == 'Y') {
+        passwordPool += low_register;
+        cout << "Нижний регистер будет участвовать в подборе пароля" << endl;
+        cout << "--------------------------------" << endl;
+    } else {
+        cout << "Нижний регистер не будет присутствовать в пароле" << endl;
+        cout << "--------------------------------" << endl;
+    }
+    // ---------------------------
+    char useHighReg;
+    cout << "Использовать в пароле высокий регистер букв? (y/n)" << endl;
+    cin >> useHighReg;
+    cin.ignore();
+    if (useHighReg == 'y' || useHighReg == 'Y') {
+        passwordPool += high_register;
+        cout << "Высокий регистер будет участвовать в подборе пароля" << endl;
+        cout << "--------------------------------" << endl;
+    } else {
+        cout << "Высокий регистер не будет присутствовать в пароле" << endl;
+        cout << "--------------------------------" << endl;
+    }
+    // -------------------------------
+    char useSym;
+    cout << "Использовать в пароле символы? (y/n)" << endl;
+    cin >> useSym;
+    cin.ignore();
+    if (useSym == 'y' || useSym == 'Y') {
+        passwordPool += symbols;
+        cout << "Символы будут участвовать в подборе пароля" << endl;
+        cout << "--------------------------------" << endl;
+    } else {
+        cout << "Символы не будут присутствовать в пароле" << endl;
+        cout << "--------------------------------" << endl;
+    }
+    // --------------------------------------
+    char useNumbers;
+    cout << "Использовать в пароле числа? (y/n)" << endl;
+    cin >> useNumbers;
+    cin.ignore();
+    if (useNumbers == 'y' || useNumbers == 'Y') {
+        passwordPool += numbers;
+        cout << "Числа будут участвовать в подборе пароля" << endl;
+    } else {
+        cout << "Числа не будут присутствовать в пароле" << endl;
+    }
+    if (passwordPool.empty()) {
+        cout << "Ошибка! Польностью пустой пул подбора пароля, будет автоматические добавлен нижний регистор букв в пул" << endl;
+        passwordPool += low_register;
+    }
+}
+bool continueProgram () {
+    char choose;
+    cout << "Хотите создать ещё один экземпляр пароля? (y/n)" << endl;
+    cin >> choose;
+    cin.ignore();
+    if (choose == 'y' || choose == 'Y') {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+int main() {
+    ifstream file1 ("passwordBase.txt");
+    if (file1.is_open()) {
+
+    }
+    while (true) {
+        int dlinaParola;
+        string passwordPool = "";
+        cout << " --- Генератор безопасных паролей --- " << endl;
+        cout << "Введите желаемую длину пароля: " << endl;
+        cin >> dlinaParola;
+        cin.ignore();
+        cout << "Будет сгенерирован пароль длинной: " << dlinaParola << " символов" << endl;
+        typeOfSymbols(passwordPool);
+        string password = "";
+        random_device rd;
+        mt19937 gen(rd());
+        uniform_int_distribution<int> dist(0, passwordPool.length() - 1);
+        for (int i = 0; i < dlinaParola; i++) {
+            int randomIndex = dist(gen);
+            password += passwordPool [randomIndex];
+        }
+        cout << "---------------------------------------" << endl;
+        cout << "Ваш сгенерированный пароль: " << password << endl;
+        cout << "--------------------------------" << endl;
+        float entropy = calculateSafetyOfPassword(dlinaParola, passwordPool.length());
+        cout << "Энтропия пароля: " << entropy << " бит" << endl;
+        cout << "---- Вердикт ----" << endl;
+        levelOfSafety(entropy);
+        string timeTocrack = timeToCrack(entropy);
+        cout << "Примерное время взлома (брутфорс): " << timeTocrack << endl;
+        ofstream file ("passwordBase.txt", ios::app);
+        if (file.is_open()) {
+            file << "Пароль: " << password << " | " << "Энтропия: " << entropy << " бит | Примерное время взлома: " << timeTocrack << endl;
+            file.close();
+        }
+        if (continueProgram() == true) {
+            continue;
+        } else {
+            break;
+        }
+    }
+    return 0;
+}
